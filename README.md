@@ -332,24 +332,6 @@ This project demonstrates:
 - Environmental data visualization
 - Responsive UI development
 
----
-
-## Future Improvements
-
-Potential enhancements include:
-
-- Interactive environmental charts
-- Historical AQI trends
-- Geographic location selection
-- User authentication
-- Database integration
-- Species search functionality
-- Carbon footprint calculator
-- Weather data integration
-- Advanced analytics dashboard
-- CI/CD pipeline deployment
-
----
 
 ## Author
 
