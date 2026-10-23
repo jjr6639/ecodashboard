@@ -1,96 +1,63 @@
 # EcoDashboard
 
-A full-stack environmental monitoring dashboard that aggregates real-time environmental data, climate news, air quality metrics, and endangered species information into a single modern web application.
+A full-stack environmental dashboard that brings live air quality readings, environmental news from RSS feeds, and a reference list of critically endangered species together on one page.
 
-EcoDashboard combines a React-based front end with a custom Express API to provide users with a centralized view of current environmental conditions and conservation-related information.
+The front end is a React 19 + Vite single-page app. The back end is a small Express API that aggregates and caches environmental news from four RSS feeds.
 
 ---
 
 ## Features
 
-### Real-Time Air Quality Monitoring
+### Air quality (live)
 
-- Retrieves live air quality data from the Open-Meteo Air Quality API
-- Displays:
-  - US AQI (Air Quality Index)
-  - PM2.5 concentrations
-  - Air quality status indicators
-- Automatically refreshes data every 5 minutes
+- Fetches hourly US AQI, PM2.5, and PM10 data from the [Open-Meteo Air Quality API](https://open-meteo.com/en/docs/air-quality-api) (no API key required)
+- Shows the AQI value with a status label: Good (0–50), Moderate (51–100), or Unhealthy (above 100)
+- Shows the PM2.5 concentration in µg/m³
+- Location is currently fixed to New York City (40.7128, −74.0060)
 
-### Environmental News Feed
+### Environmental news (live, via custom API)
 
-- Custom-built Express API for environmental news aggregation
-- Displays recent environmental and climate-related articles
-- External links to original sources
-- Fallback content available if API services are unavailable
+- The Express API pulls the 4 most recent items from each of these feeds:
+  - Phys.org Environment
+  - ScienceDaily Environmental Issues
+  - EcoWatch
+  - Carbon Brief
+- Articles are sorted by publish date and cached in memory for 30 minutes
+- Each article gets an image from the feed, or a topic-matched Unsplash placeholder if the feed has none
+- The dashboard shows the 6 newest articles
+- If the API can't be reached, the dashboard shows a built-in set of placeholder articles instead of an empty panel
 
-### Endangered Species Tracking
+### Endangered species (static reference data)
 
-Displays information for critically endangered species, including:
+Displays a fixed list of four critically endangered species with an estimated population and trend:
 
-- Species name
-- Estimated population
-- Population trend
-- Visual status indicators
+| Species | Population shown | Trend |
+|---|---|---|
+| Sumatran Orangutan | 13,846 | Decreasing |
+| Javan Rhino | 76 | Stable |
+| Vaquita | ~10 | Decreasing |
+| Amur Leopard | ~100 | Increasing |
 
-Current tracked species include:
+These values are hardcoded in `src/App.jsx`; they are not pulled from a live source.
 
-- Sumatran Orangutan
-- Javan Rhino
-- Vaquita
-- Amur Leopard
+### Dashboard behavior
 
-### Environmental Metrics Dashboard
-
-Provides key environmental indicators such as:
-
-- Air Quality Index (AQI)
-- PM2.5 levels
-- Global CO₂ emissions data
-- Number of tracked endangered species
-
-### Live Dashboard Experience
-
-- Auto-refreshing environmental data
-- Manual refresh functionality
-- Live status indicators
-- Responsive dashboard layout
+- Auto-refreshes all data every 5 minutes
+- Manual refresh button
+- Last-updated timestamp
+- Global CO₂ indicator (a static value of 36.8 Gt)
+- Responsive layout that stacks into a single column on narrow screens
 
 ---
 
 ## Tech Stack
 
-### Front End
-
-- React 19
-- Vite
-- CSS3
-- Lucide React Icons
-
-### Data Visualization
-
-- Recharts
-
-### HTTP & Data Fetching
-
-- Fetch API
-- Axios
-
-### Back End
-
-- Node.js
-- Express
-- CORS
-
-### News Aggregation
-
-- RSS Parser
-
-### Containerization
-
-- Docker
-- Docker Compose
-- Nginx
+| Layer | Tools |
+|---|---|
+| Front end | React 19, Vite 7, CSS, Lucide React icons, Fetch API |
+| Back end | Node.js, Express 4, CORS, rss-parser |
+| Containers | Docker (multi-stage build), Docker Compose, Nginx |
+| Tooling | ESLint, nodemon |
 
 ---
 
@@ -98,249 +65,117 @@ Provides key environmental indicators such as:
 
 ```text
 ecodashboard/
-│
 ├── src/
-│   ├── components/
-│   │   ├── AirQualityCard.jsx
-│   │   └── EndangeredSpeciesCard.jsx
-│   │
-│   ├── App.jsx
-│   ├── App.css
-│   └── main.jsx
-│
+│   ├── App.jsx              # Dashboard: data fetching, refresh logic, layout
+│   ├── App.css              # Styles
+│   ├── main.jsx             # React entry point
+│   └── components/          # Card components (not yet used by App.jsx)
 ├── public/
-│
 ├── api/
-│   ├── server.js
+│   ├── server.js            # Express news API
 │   ├── package.json
 │   └── Dockerfile
-│
-├── Dockerfile
-├── docker-compose.yml
+├── Dockerfile               # Builds the front end and serves it with Nginx
+├── docker-compose.yml       # Runs the API and front end together
 ├── nginx.conf
+├── start.sh                 # Starts the API and front end locally in one step
 ├── vite.config.js
 └── package.json
 ```
 
 ---
 
-## Architecture
+## API Endpoints
 
-### Front End
+The news API runs on port 3001 by default (set `PORT` to change it).
 
-The React application serves as the primary dashboard interface and handles:
+| Endpoint | Returns |
+|---|---|
+| `GET /` | API info, endpoint list, and source names |
+| `GET /api/news` | Up to 16 cached articles |
+| `GET /api/news/latest` | The 6 newest articles |
+| `GET /api/health` | Status, uptime, cached article count, last fetch time |
 
-- Air quality data retrieval
-- Dashboard rendering
-- News display
-- Species tracking visualization
-- Automatic refresh cycles
-
-### Back End
-
-The Express API provides:
-
-- Environmental news aggregation
-- RSS feed processing
-- Unified API endpoint for dashboard consumption
-- CORS-enabled communication with the React client
-
-### External Data Sources
-
-#### Open-Meteo Air Quality API
-
-Provides:
-
-- AQI values
-- PM2.5 data
-- Air quality forecasts
-
-#### RSS News Sources
-
-Aggregated through the custom API to provide:
-
-- Environmental news
-- Climate updates
-- Conservation stories
-- Sustainability developments
-
-#### IUCN Red List (Reference Data)
-
-Used as a source for endangered species information and conservation status tracking.
+Each article has `title`, `description`, `link`, `source`, `category`, `pubDate`, and `image`.
 
 ---
 
-## Installation
+## Getting Started
 
-### Clone Repository
+Requires Node.js 20 or later.
 
 ```bash
-git clone <repository-url>
+git clone https://github.com/jjr6639/ecodashboard.git
 cd ecodashboard
-```
-
----
-
-## Install Front-End Dependencies
-
-```bash
 npm install
+cd api && npm install && cd ..
 ```
 
----
-
-## Install API Dependencies
+### Run locally (quick start)
 
 ```bash
+./start.sh
+```
+
+This starts the API on `http://localhost:3001` and the dashboard on `http://localhost:5173`. Press Ctrl+C to stop both.
+
+### Run locally (separately)
+
+```bash
+# Terminal 1: API
 cd api
-npm install
-```
+npm run dev     # auto-reloads with nodemon; use npm start for plain node
 
----
-
-## Running the Application
-
-### Start the API Server
-
-From the API directory:
-
-```bash
+# Terminal 2: front end
 npm run dev
 ```
 
-or
+### Run with Docker Compose
 
 ```bash
-npm start
+docker-compose up --build     # build and start
+docker-compose up -d          # start in the background
+docker-compose down           # stop
 ```
 
-The API will run on:
+| Service | URL |
+|---|---|
+| Dashboard | http://localhost:8080 |
+| News API | http://localhost:3002 |
 
-```text
-http://localhost:3001
-```
+**Note:** the front end calls the API at `http://localhost:3001`, so under Docker Compose the news panel currently shows placeholder articles. See Known Limitations.
 
 ---
 
-### Start the Front End
+## Scripts
 
-From the project root:
-
-```bash
-npm run dev
-```
-
-The React application will run on:
-
-```text
-http://localhost:5173
-```
+| Location | Command | What it does |
+|---|---|---|
+| root | `npm run dev` | Start the Vite dev server |
+| root | `npm run build` | Build production assets to `dist/` |
+| root | `npm run preview` | Preview the production build |
+| root | `npm run lint` | Run ESLint |
+| `api/` | `npm start` | Start the API |
+| `api/` | `npm run dev` | Start the API with auto-reload |
 
 ---
 
-## Docker Deployment
+## Known Limitations
 
-Build and run the complete application stack:
-
-```bash
-docker-compose up --build
-```
-
-Run in detached mode:
-
-```bash
-docker-compose up -d
-```
-
-Stop containers:
-
-```bash
-docker-compose down
-```
+- **Fixed location:** air quality is always for New York City.
+- **Static data:** the species list and the global CO₂ value are hardcoded.
+- **Docker networking:** the API URL is hardcoded to `localhost:3001`, and Nginx does not proxy `/api` requests, so live news does not load in the Docker Compose setup.
+- **No persistence:** there is no database; news is cached in memory and nothing is stored between restarts.
+- **No automated tests in this repository.**
 
 ---
-
-## Available Scripts
-
-### Front End
-
-Start development server:
-
-```bash
-npm run dev
-```
-
-Build production assets:
-
-```bash
-npm run build
-```
-
-Preview production build:
-
-```bash
-npm run preview
-```
-
-Run ESLint:
-
-```bash
-npm run lint
-```
-
----
-
-### API
-
-Start production server:
-
-```bash
-npm start
-```
-
-Run with automatic reload:
-
-```bash
-npm run dev
-```
-
----
-
-## Environmental Data Displayed
-
-| Metric | Description |
-|----------|-------------|
-| AQI | Air Quality Index |
-| PM2.5 | Fine particulate pollution |
-| Global CO₂ | Global carbon emissions indicator |
-| Species Tracking | Critically endangered species monitoring |
-| News Feed | Environmental and climate news updates |
-
----
-
-## Key Learning Objectives
-
-This project demonstrates:
-
-- Full-stack web development
-- React state management
-- REST API integration
-- Express server development
-- RSS feed aggregation
-- Real-time data updates
-- Docker containerization
-- Environmental data visualization
-- Responsive UI development
-
 
 ## Author
 
-**Jordan Runyon**
-
-Developed as a personal environmental monitoring dashboard to explore full-stack development, API integration, real-time data visualization, and environmental data aggregation.
+**Jordan J. Runyon**
 
 ---
 
 ## License
 
-This project is licensed under the MIT License.
+MIT
